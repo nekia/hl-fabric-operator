@@ -1,0 +1,688 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: fabric-operator
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.4.1
+  creationTimestamp: null
+  name: fabricnetworks.hyperledger.org
+spec:
+  group: hyperledger.org
+  names:
+    kind: FabricNetwork
+    listKind: FabricNetworkList
+    plural: fabricnetworks
+    shortNames:
+    - fn
+    singular: fabricnetwork
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: FabricNetwork is the Schema for the fabricnetworks API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: FabricNetworkSpec defines the desired state of FabricNetwork
+            properties:
+              chaincode:
+                description: ChaincodeConfig is the global chaincode settings and source of chaincode sources. Source is either a folder or an implied list of ConfigMaps. Each chaincode is TAR acrhived and expected to be in a ConfigMap hlf-chaincode--<chaincode name>
+                properties:
+                  folder:
+                    description: Folder containing chaincode folders
+                    type: string
+                  language:
+                    description: Programming language of chaincode. If defined, this will override the global chaincode.language value
+                    type: string
+                  version:
+                    description: Version of chaincode. If defined, this will override the global chaincode.version value
+                    type: string
+                type: object
+              chaincode-flow:
+                description: Additional values passed to chaincode-flow
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              channel-flow:
+                description: Additional values passed to channel-flow
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              configtx:
+                description: Configtx is the source of configtx.yaml file. either a Kubernetes Secret or a file. file can only be used via CLI
+                properties:
+                  file:
+                    type: string
+                  secret:
+                    enum:
+                    - hlf-configtx.yaml
+                    type: string
+                type: object
+              crypto-config:
+                description: CryptoConfig is the source of crypto materials. either a Kubernetes Secret or a folder. If none provided Fabric Operator will create the crypto materials via cryptogen tool. The secret contains TAR archived crypto material in the field "crypto-config"
+                properties:
+                  folder:
+                    description: Folder containing crypto-material
+                    type: string
+                  secret:
+                    enum:
+                    - hlf-crypto-config
+                    type: string
+                type: object
+              forceState:
+                description: ForceState forces fabric operator to set the the state of FabricNetwork to given state and continue. Use with caution.
+                enum:
+                - New
+                - Ready
+                - HelmChartInstalled
+                - HelmChartNeedsUpdate
+                - HelmChartNeedsDoubleUpdate
+                - HelmChartReady
+                - ChannelFlowCompleted
+                - ChaincodeFlowCompleted
+                - PeerOrgFlowCompleted
+                type: string
+              genesis:
+                description: Genesis is the source of genesis block. either a Kubernetes Secret or a file. If none provided Fabric Operator will create the genesis block. file can only be used via CLI
+                properties:
+                  file:
+                    type: string
+                  secret:
+                    enum:
+                    - hlf-genesis.block
+                    type: string
+                type: object
+              hlf-kube:
+                description: Additional values passed to hlf-kube Helm chart
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              hostAliases:
+                description: Adds additional DNS entries to /etc/hosts files of pods This is provided for communication with external peers/orderers if useActualDomains is true, Fabric Operator will still create internal hostAliases and append to this one
+                items:
+                  description: HostAlias holds the mapping between IP and hostnames that will be injected as an entry in the pod's hosts file.
+                  properties:
+                    hostnames:
+                      description: Hostnames for the above IP address.
+                      items:
+                        type: string
+                      type: array
+                    ip:
+                      description: IP address of the host file entry.
+                      type: string
+                  type: object
+                type: array
+              network:
+                properties:
+                  chaincodes:
+                    items:
+                      properties:
+                        channels:
+                          description: Channels are we instantiating/upgrading this chaincode
+                          items:
+                            description: Chaincode channel
+                            properties:
+                              name:
+                                description: Name of channel
+                                type: string
+                              orgs:
+                                description: Chaincode will be instantiated/upgraded using the first peer in the first organization. Chaincode will be invoked on all peers in these organizations.
+                                items:
+                                  type: string
+                                type: array
+                              policy:
+                                description: Chaincode policy
+                                type: string
+                            required:
+                            - name
+                            - orgs
+                            - policy
+                            type: object
+                          type: array
+                        language:
+                          description: Programming language of chaincode. If defined, this will override the global chaincode.language value
+                          type: string
+                        name:
+                          description: Name of chaincode
+                          type: string
+                        orgs:
+                          description: Chaincode will be installed to all peers in these peer organizations
+                          items:
+                            type: string
+                          type: array
+                        version:
+                          description: Version of chaincode. If defined, this will override the global chaincode.version value
+                          type: string
+                      required:
+                      - channels
+                      - name
+                      - orgs
+                      type: object
+                    type: array
+                  channels:
+                    items:
+                      properties:
+                        name:
+                          description: Name of channel
+                          type: string
+                        orgs:
+                          description: Peer organizations in the channel
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - name
+                      - orgs
+                      type: object
+                    type: array
+                  genesisProfile:
+                    type: string
+                  systemChannelID:
+                    type: string
+                type: object
+              peer-org-flow:
+                description: Additional values passed to peer-org-flow
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              topology:
+                description: Topology of the Fabric network managed by Fabric Operator. Also contains some top level properties which is applied to whole network.
+                properties:
+                  ordererOrgs:
+                    description: Orderer organizations
+                    items:
+                      description: Orderer organization
+                      properties:
+                        domain:
+                          description: Domain of organization
+                          type: string
+                        hosts:
+                          description: orderer hosts list, at least one is required
+                          items:
+                            type: string
+                          type: array
+                        name:
+                          description: Name of organization
+                          type: string
+                      required:
+                      - domain
+                      - hosts
+                      - name
+                      type: object
+                    type: array
+                  peerOrgs:
+                    description: Peer organizations
+                    items:
+                      description: Peer organization
+                      properties:
+                        domain:
+                          description: Domain of organization
+                          type: string
+                        name:
+                          description: Name of organization
+                          type: string
+                        peerCount:
+                          description: number of peers
+                          format: int32
+                          type: integer
+                      required:
+                      - domain
+                      - name
+                      - peerCount
+                      type: object
+                    type: array
+                  tlsEnabled:
+                    description: TLS enabled?
+                    type: boolean
+                  useActualDomains:
+                    description: use actual domain names like peer0.atlantis.com instead of internal service names
+                    type: boolean
+                  version:
+                    description: Hyperledger Fabric Version
+                    type: string
+                required:
+                - version
+                type: object
+            required:
+            - configtx
+            type: object
+          status:
+            description: FabricNetworkStatus defines the observed state of FabricNetwork
+            properties:
+              chaincode:
+                description: ChaincodeConfig is the global chaincode settings and source of chaincode sources. Source is either a folder or an implied list of ConfigMaps. Each chaincode is TAR acrhived and expected to be in a ConfigMap hlf-chaincode--<chaincode name>
+                properties:
+                  folder:
+                    description: Folder containing chaincode folders
+                    type: string
+                  language:
+                    description: Programming language of chaincode. If defined, this will override the global chaincode.language value
+                    type: string
+                  version:
+                    description: Version of chaincode. If defined, this will override the global chaincode.version value
+                    type: string
+                type: object
+              chaincodes:
+                items:
+                  properties:
+                    channels:
+                      description: Channels are we instantiating/upgrading this chaincode
+                      items:
+                        description: Chaincode channel
+                        properties:
+                          name:
+                            description: Name of channel
+                            type: string
+                          orgs:
+                            description: Chaincode will be instantiated/upgraded using the first peer in the first organization. Chaincode will be invoked on all peers in these organizations.
+                            items:
+                              type: string
+                            type: array
+                          policy:
+                            description: Chaincode policy
+                            type: string
+                        required:
+                        - name
+                        - orgs
+                        - policy
+                        type: object
+                      type: array
+                    language:
+                      description: Programming language of chaincode. If defined, this will override the global chaincode.language value
+                      type: string
+                    name:
+                      description: Name of chaincode
+                      type: string
+                    orgs:
+                      description: Chaincode will be installed to all peers in these peer organizations
+                      items:
+                        type: string
+                      type: array
+                    version:
+                      description: Version of chaincode. If defined, this will override the global chaincode.version value
+                      type: string
+                  required:
+                  - channels
+                  - name
+                  - orgs
+                  type: object
+                type: array
+              channels:
+                items:
+                  properties:
+                    name:
+                      description: Name of channel
+                      type: string
+                    orgs:
+                      description: Peer organizations in the channel
+                      items:
+                        type: string
+                      type: array
+                  required:
+                  - name
+                  - orgs
+                  type: object
+                type: array
+              message:
+                type: string
+              nextflow:
+                enum:
+                - None
+                - PeerOrgFlow
+                type: string
+              state:
+                type: string
+              topology:
+                description: Topology of the Fabric network managed by Fabric Operator. Also contains some top level properties which is applied to whole network.
+                properties:
+                  ordererOrgs:
+                    description: Orderer organizations
+                    items:
+                      description: Orderer organization
+                      properties:
+                        domain:
+                          description: Domain of organization
+                          type: string
+                        hosts:
+                          description: orderer hosts list, at least one is required
+                          items:
+                            type: string
+                          type: array
+                        name:
+                          description: Name of organization
+                          type: string
+                      required:
+                      - domain
+                      - hosts
+                      - name
+                      type: object
+                    type: array
+                  peerOrgs:
+                    description: Peer organizations
+                    items:
+                      description: Peer organization
+                      properties:
+                        domain:
+                          description: Domain of organization
+                          type: string
+                        name:
+                          description: Name of organization
+                          type: string
+                        peerCount:
+                          description: number of peers
+                          format: int32
+                          type: integer
+                      required:
+                      - domain
+                      - name
+                      - peerCount
+                      type: object
+                    type: array
+                  tlsEnabled:
+                    description: TLS enabled?
+                    type: boolean
+                  useActualDomains:
+                    description: use actual domain names like peer0.atlantis.com instead of internal service names
+                    type: boolean
+                  version:
+                    description: Hyperledger Fabric Version
+                    type: string
+                required:
+                - version
+                type: object
+              workflow:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: leader-election-role
+  namespace: fabric-operator
+rules:
+- apiGroups:
+  - ""
+  - coordination.k8s.io
+  resources:
+  - configmaps
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: manager-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - '*'
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - argoproj.io
+  resources:
+  - workflows
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - hyperledger.org
+  resources:
+  - fabricnetworks
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - hyperledger.org
+  resources:
+  - fabricnetworks/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - hyperledger.org
+  resources:
+  - fabricnetworks/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - policy
+  resources:
+  - poddisruptionbudgets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: metrics-reader
+rules:
+- nonResourceURLs:
+  - /metrics
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: proxy-role
+rules:
+- apiGroups:
+  - authentication.k8s.io
+  resources:
+  - tokenreviews
+  verbs:
+  - create
+- apiGroups:
+  - authorization.k8s.io
+  resources:
+  - subjectaccessreviews
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: leader-election-rolebinding
+  namespace: fabric-operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: fabric-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: manager-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: manager-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: fabric-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: proxy-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: proxy-role
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: fabric-operator
+---
+apiVersion: v1
+data:
+  controller_manager_config.yaml: |
+    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
+    kind: ControllerManagerConfig
+    health:
+      healthProbeBindAddress: :8081
+    metrics:
+      bindAddress: 127.0.0.1:8080
+    webhook:
+      port: 9443
+    leaderElection:
+      leaderElect: true
+      resourceName: 5c973184.
+kind: ConfigMap
+metadata:
+  name: manager-config
+  namespace: fabric-operator
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: controller-manager-metrics-service
+  namespace: fabric-operator
+spec:
+  ports:
+  - name: https
+    port: 8443
+    targetPort: https
+  selector:
+    control-plane: controller-manager
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: controller-manager
+  namespace: fabric-operator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+    spec:
+      containers:
+      - args:
+        - --secure-listen-address=0.0.0.0:8443
+        - --upstream=http://127.0.0.1:8080/
+        - --logtostderr=true
+        - --v=10
+        image: gcr.io/kubebuilder/kube-rbac-proxy:v0.5.0
+        name: kube-rbac-proxy
+        ports:
+        - containerPort: 8443
+          name: https
+      - args:
+        - --health-probe-bind-address=:8081
+        - --metrics-bind-address=127.0.0.1:8080
+        - --leader-elect
+        command:
+        - /manager
+        image: raft/rfabric:v0.2.0
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        name: manager
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 100m
+            memory: 1024Mi
+          requests:
+            cpu: 100m
+        securityContext:
+          allowPrivilegeEscalation: false
+      securityContext:
+        runAsUser: 65532
+      terminationGracePeriodSeconds: 10
