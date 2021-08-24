@@ -17,9 +17,9 @@ RUN curl https://get.helm.sh/helm-v3.5.2-linux-arm64.tar.gz --output helm.tar.gz
 FROM alpine/git@sha256:94a81d66655d75597155e0afc3629dad909ba08c5f97d24238ff6d69a0af91c0 as git
 
 WORKDIR /workspace
-RUN git clone https://github.com/hyfen-nl/PIVT.git \
+RUN git clone https://github.com/nekia/PIVT.git \
     && cd PIVT \
-    && git checkout b94a6a53e018fdb7cc5455fb3aa9d8b40a51d54d
+    && git checkout e90a898142a7c18c78821a002b8a15806e099bc8
 
 # Install hlf-kube Helm chart dependencies (Kafka)
 COPY --from=curl /helm/linux-arm64/helm /usr/local/bin/

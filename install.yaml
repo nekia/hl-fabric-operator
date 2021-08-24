@@ -662,6 +662,7 @@ spec:
         command:
         - /manager
         image: nekia/rfabric:v0.2.0
+        imagePullPolicy: Always
         livenessProbe:
           httpGet:
             path: /healthz

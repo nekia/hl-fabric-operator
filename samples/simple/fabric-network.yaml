@@ -109,6 +109,7 @@ spec:
         dind: 
           # use a side car docker in docker container? required for Kubernetes versions 1.19+ 
           enabled: true
+          image: arm64v8/docker:18.06.0-dind
   channel-flow: {}
   chaincode-flow: {}
   peer-org-flow: {}
