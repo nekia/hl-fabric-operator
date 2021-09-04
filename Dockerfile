@@ -1,13 +1,5 @@
 # download HL Fabric binaries and Helm
-FROM curlimages/curl@sha256:447bae16f0f8fb4c96a0dd67da5c034db94fcdb40861d6a3a1992d2aee9ba2a8 as curl
-
-USER root
-# RUN apk update && apk add bash
-
-WORKDIR /fabric
-RUN mkdir -p /fabric/bin \
-    && chmod 777 /fabric/bin
-COPY ./fabric-bin-arm64 bin
+FROM nekia/fabric-tools:1.4.9 as curl
 
 WORKDIR /helm
 RUN curl https://get.helm.sh/helm-v3.5.2-linux-arm64.tar.gz --output helm.tar.gz \
@@ -19,7 +11,7 @@ FROM alpine/git@sha256:94a81d66655d75597155e0afc3629dad909ba08c5f97d24238ff6d69a
 WORKDIR /workspace
 RUN git clone https://github.com/nekia/PIVT.git \
     && cd PIVT \
-    && git checkout 977759fc2ec42b8e028e4a83788997a91b4fba1d
+    && git checkout 833647b177e36f830f656d13004f6d4bd06f15d3
 
 # Install hlf-kube Helm chart dependencies (Kafka)
 COPY --from=curl /helm/linux-arm64/helm /usr/local/bin/
@@ -51,7 +43,7 @@ FROM arm64v8/alpine@sha256:bd9137c3bb45dbc40cde0f0e19a8b9064c2bc485466221f5e95eb
 WORKDIR /
 COPY --from=builder /workspace/manager .
 COPY --from=git /workspace/PIVT /opt/fabric-operator/PIVT/
-COPY --from=curl /fabric/bin/configtxgen /fabric/bin/cryptogen /fabric/bin/configtxlator /opt/hlf/
+COPY --from=curl /usr/local/bin/configtxgen /usr/local/bin/cryptogen /usr/local/bin/configtxlator /opt/hlf/
 
 ENV PATH "$PATH:/opt/hlf"
 
